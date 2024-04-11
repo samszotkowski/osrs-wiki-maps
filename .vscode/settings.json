@@ -1,0 +1,15 @@
+{
+    "editor.tabSize": 4,
+    "editor.detectIndentation": true,
+    "editor.indentSize": "tabSize",
+    "editor.rulers": [88],
+    "black-formatter.args": [
+        "--line-length",
+        "88"
+    ],
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+}
