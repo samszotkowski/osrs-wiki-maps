@@ -7,7 +7,7 @@ import glob
 import numpy as np
 from collections import defaultdict
 
-version = "../out/mapgen/versions/2024-04-10_a"
+version = "../out/mapgen/versions/2024-04-10_b"
 
 with open("%s/worldMapDefinitions.json" % version) as f:
 	defs = json.load(f)

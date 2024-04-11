@@ -31,3 +31,5 @@ replay_pid*
 # input
 data/
 out/
+
+.vscode/*
