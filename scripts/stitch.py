@@ -9,9 +9,22 @@ version = "../out/mapgen/versions/2024-04-10_a"
 
 with open("%s/worldMapDefinitions.json" % version) as f:
     defs = json.load(f)
+    jagex_def_ids = [d["fileId"] for d in defs]
 
 with open("user_map_defs.json") as f:
-    defs += json.load(f)
+    user_defs = json.load(f)
+
+# Allow to overwrite jagex-defined maps' region lists
+# Useful to avoid black squares in gielinor surface
+for i, user_def in enumerate(user_defs):
+    def_id = user_def["fileId"]
+
+    if def_id in jagex_def_ids:
+        def_index = jagex_def_ids.index(def_id)
+        defs[def_index]["regionList"] = user_def["regionList"]
+
+    else:
+        defs.append(user_def)
 
 with open("%s/minimapIcons.json" % version) as f:
     icons = json.load(f)
