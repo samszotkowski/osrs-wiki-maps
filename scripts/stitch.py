@@ -407,7 +407,7 @@ for defn in defs:
             data[(data == (255, 0, 255)).all(axis=-1)] = (0, 0, 0)
             im = Image.fromarray(data, mode="RGB")
             if planes > 1:
-                plane0Map = im.convert("LA").filter(ImageFilter.GaussianBlur(radius=5))
+                plane0Map = im.convert("LA").filter(ImageFilter.GaussianBlur(radius=2))
 
         elif plane > 0:
             data = np.asarray(im.convert("RGBA")).copy()
