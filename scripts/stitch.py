@@ -171,7 +171,7 @@ def getIconsInsideArea(
 
 def allBlack(im):
     data = np.asarray(im.convert("RGBA"))
-    return np.count_nonzero(data[:, :, :3]) == 0
+    return np.all(data[:, :, :3] < 50)  # sometimes edges bleed over from blur
 
 
 PADDING = 64
