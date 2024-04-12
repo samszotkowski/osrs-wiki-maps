@@ -191,8 +191,8 @@
         "name": "Airship platform",
         "regionList": [
             {
-                "numberOfPlanes": 3,
-                "plane": 1,
+                "numberOfPlanes": 4,
+                "plane": 0,
                 "yHigh": 84,
                 "xHigh": 32,
                 "xLow": 32,

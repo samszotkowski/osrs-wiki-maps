@@ -7,7 +7,7 @@ import numpy as np
 
 version = "../out/mapgen/versions/2024-04-10_a"
 
-with open("%s/worldMapDefinitions.json" % version) as f:
+with open(f"{version}/worldMapDefinitions.json") as f:
     defs = json.load(f)
     jagex_def_ids = [d["fileId"] for d in defs]
 
@@ -15,7 +15,7 @@ with open("user_map_defs.json") as f:
     user_defs = json.load(f)
 
 # Allow to overwrite jagex-defined maps' region lists
-# Useful to avoid black squares in gielinor surface
+# Useful to avoid black regions in gielinor surface
 for i, user_def in enumerate(user_defs):
     def_id = user_def["fileId"]
 
@@ -26,11 +26,11 @@ for i, user_def in enumerate(user_defs):
     else:
         defs.append(user_def)
 
-with open("%s/minimapIcons.json" % version) as f:
+with open(f"{version}/minimapIcons.json") as f:
     icons = json.load(f)
 
 iconSprites = {}
-for file in glob.glob("%s/icons/*.png" % version):
+for file in glob.glob(f"{version}/icons/*.png"):
     print(file)
     spriteId = int(file.split("/")[-1][:-4])
     iconSprites[spriteId] = Image.open(file)
@@ -39,7 +39,7 @@ overallXLow = 999
 overallXHigh = 0
 overallYLow = 999
 overallYHigh = 0
-for file in glob.glob("%s/tiles/base/*.png" % version):
+for file in glob.glob(f"{version}/tiles/base/*.png"):
     filename = file.split("/")[-1]
     filename = filename.replace(".png", "")
     plane, x, y = map(int, filename.split("_"))
@@ -211,9 +211,24 @@ for defn in defs:
     for plane in range(planes):
         print(mapId, plane)
         validIcons = []
-        im = Image.new("RGB", (overallWidth + 512, overallHeight + 512))
+        # Canvas is this map defn plus 1-region border
+        im = Image.new(
+            "RGB",
+            (
+                overallWidth + PADDING * px_per_square * 2,
+                overallHeight + PADDING * px_per_square * 2,
+            ),
+        )
+
+        # All maps may be offset in the z (plane) direction, only some in x/y
         for region in defn["regionList"]:
+            # These maps may be cartographically offset by some # regions
             if "xLowerLeft" in region:
+                # `plane` is cartographically what plane this image will be on
+                # `og_plane` is its actual z location
+                og_base_plane = region["plane"]
+                og_plane = og_base_plane + plane
+
                 oldLowX = region["xLowerLeft"]
                 oldHighX = region["xLowerRight"]
                 oldLowY = region["yLowerLeft"]
@@ -222,15 +237,15 @@ for defn in defs:
                 newHighX = region["xUpperRight"]
                 newLowY = region["yLowerRight"]
                 newHighY = region["yUpperRight"]
-                print(
-                    oldLowX == newLowX,
-                    oldLowY == newLowY,
-                    oldHighX == newHighX,
-                    oldHighY == newHighY,
-                )
+
+                if oldLowX != newLowX or oldHighX != newHighX:
+                    print("Offset X")
+                if oldLowY != newLowY or oldHighY != newHighY:
+                    print("Offset Y")
+
                 validIcons.extend(
                     getIconsInsideArea(
-                        region["plane"] + plane,
+                        og_plane,
                         oldLowX,
                         oldHighX,
                         oldLowY,
@@ -240,62 +255,63 @@ for defn in defs:
                 )
                 for x in range(oldLowX, oldHighX + 1):
                     for y in range(oldLowY, oldHighY + 1):
-                        filename = "%s/tiles/base/%s_%s_%s.png" % (
-                            version,
-                            region["plane"] + plane,
-                            x,
-                            y,
-                        )
+                        filename = f"{version}/tiles/base/{og_plane}_{x}_{y}.png"
                         if os.path.exists(filename):
                             square = Image.open(filename)
                             imX = (x - lowX + newLowX - oldLowX) * px_per_square * 64
                             imY = (highY - y) * px_per_square * 64
                             im.paste(square, box=(imX + 256, imY + 256))
+
+            # Regions in these maps may be offset by some # chunks
             elif "chunk_oldXLow" in region:
-                filename = "%s/tiles/base/%s_%s_%s.png" % (
-                    version,
-                    region["oldPlane"] + plane,
-                    region["oldX"],
-                    region["oldY"],
-                )
-                dx = (
-                    region["newX"] * 64
-                    + region["chunk_newXLow"] * 8
-                    - region["oldX"] * 64
-                    - region["chunk_oldXLow"] * 8
-                )
-                dy = (
-                    region["newY"] * 64
-                    + region["chunk_newYLow"] * 8
-                    - region["oldY"] * 64
-                    - region["chunk_oldYLow"] * 8
-                )
-                dz = 0 - region["oldPlane"]
+                og_base_plane = region["oldPlane"]
+                og_plane = og_base_plane + plane
+                plane_offset = 0 - og_base_plane
+
+                region_low_x = region["oldX"]
+                region_low_y = region["oldY"]
+                region_offset_x = (region["newX"] - region_low_x) * 64
+                region_offset_y = (region["newY"] - region_low_y) * 64
+
+                chunk_low_x = region["chunk_oldXLow"]
+                chunk_high_x = region["chunk_oldXHigh"]
+                chunk_low_y = region["chunk_oldYLow"]
+                chunk_high_y = region["chunk_oldYHigh"]
+                chunk_offset_x = (region["chunk_newXLow"] - chunk_low_x) * 8
+                chunk_offset_y = (region["chunk_newYLow"] - chunk_low_y) * 8
+
+                dx = region_offset_x + chunk_offset_x
+                dy = region_offset_y + chunk_offset_y
+                dz = plane_offset
                 validIcons.extend(
                     getIconsInsideArea(
-                        region["oldPlane"] + plane,
-                        region["oldX"],
-                        region["oldX"],
-                        region["oldY"],
-                        region["oldY"],
-                        region["chunk_oldXLow"],
-                        region["chunk_oldXHigh"],
-                        region["chunk_oldYLow"],
-                        region["chunk_oldYHigh"],
+                        og_plane,
+                        region_low_x,
+                        region_low_x,
+                        region_low_y,
+                        region_low_y,
+                        chunk_low_x,
+                        chunk_high_x,
+                        chunk_low_y,
+                        chunk_high_y,
                         dx,
                         dy,
                         dz,
                         allPlanes=plane == 0,
                     )
                 )
+
+                filename = (
+                    f"{version}/tiles/base/{og_plane}_{region_low_x}_{region_low_y}.png"
+                )
                 if os.path.exists(filename):
                     square = Image.open(filename)
                     cropped = square.crop(
                         (
-                            region["chunk_oldXLow"] * px_per_square * 8,
-                            (8 - region["chunk_oldYHigh"] - 1) * px_per_square * 8,
-                            (region["chunk_oldXHigh"] + 1) * px_per_square * 8,
-                            (8 - region["chunk_oldYLow"]) * px_per_square * 8,
+                            chunk_low_x * 8 * px_per_square,
+                            (8 - chunk_high_y - 1) * 8 * px_per_square,
+                            (chunk_high_x + 1) * 8 * px_per_square,
+                            (8 - chunk_low_y) * 8 * px_per_square,
                         )
                     )
                     imX = (region["newX"] - lowX) * px_per_square * 64 + region[
@@ -304,14 +320,28 @@ for defn in defs:
                     imY = (highY - region["newY"]) * px_per_square * 64 + (
                         7 - region["chunk_newYHigh"]
                     ) * px_per_square * 8
-                    im.paste(cropped, box=(imX + 256, imY + 256))
+                    im.paste(
+                        cropped,
+                        box=(
+                            imX + PADDING * px_per_square,
+                            imY + PADDING * px_per_square,
+                        ),
+                    )
+
+            # These maps may include chunk-granular subsets of a region
             elif "chunk_xLow" in region:
+                og_base_plane = region["oldPlane"]
+                og_plane = og_base_plane + plane
+
+                x_low = region["xLow"]
+                y_low = region["yLow"]
+
                 validIcons.extend(
                     getIconsInsideArea(
-                        region["plane"] + plane,
-                        region["xLow"],
+                        og_plane,
+                        x_low,
                         region["xHigh"],
-                        region["yLow"],
+                        y_low,
                         region["yHigh"],
                         region["chunk_xLow"],
                         region["chunk_xHigh"],
@@ -320,12 +350,7 @@ for defn in defs:
                         allPlanes=plane == 0,
                     )
                 )
-                filename = "%s/tiles/base/%s_%s_%s.png" % (
-                    version,
-                    region["plane"] + plane,
-                    region["xLow"],
-                    region["yLow"],
-                )
+                filename = f"{version}/tiles/base/{og_plane}_{x_low}_{y_low}.png"
                 if os.path.exists(filename):
                     square = Image.open(filename)
                     cropped = square.crop(
@@ -336,17 +361,28 @@ for defn in defs:
                             (8 - region["chunk_yLow"]) * px_per_square * 8,
                         )
                     )
-                    imX = (region["xLow"] - lowX) * px_per_square * 64 + region[
+                    imX = (x_low - lowX) * px_per_square * 64 + region[
                         "chunk_xLow"
                     ] * px_per_square * 8
-                    imY = (highY - region["yLow"]) * px_per_square * 64 + (
+                    imY = (highY - y_low) * px_per_square * 64 + (
                         7 - region["chunk_yHigh"]
                     ) * px_per_square * 8
-                    im.paste(cropped, box=(imX + 256, imY + 256))
+                    im.paste(
+                        cropped,
+                        box=(
+                            imX + px_per_square * PADDING,
+                            imY + px_per_square * PADDING,
+                        ),
+                    )
+
+            # These maps are not offset in x/y
             elif "xLow" in region:
+                og_base_plane = region["plane"]
+                og_plane = og_base_plane + plane
+
                 validIcons.extend(
                     getIconsInsideArea(
-                        region["plane"] + plane,
+                        og_plane,
                         region["xLow"],
                         region["xHigh"],
                         region["yLow"],
@@ -356,25 +392,23 @@ for defn in defs:
                 )
                 for x in range(region["xLow"], region["xHigh"] + 1):
                     for y in range(region["yLow"], region["yHigh"] + 1):
-                        filename = "%s/tiles/base/%s_%s_%s.png" % (
-                            version,
-                            region["plane"] + plane,
-                            x,
-                            y,
-                        )
+                        filename = f"{version}/tiles/base/{og_plane}_{x}_{y}.png"
                         if os.path.exists(filename):
                             square = Image.open(filename)
                             imX = (x - lowX) * px_per_square * 64
                             imY = (highY - y) * px_per_square * 64
                             im.paste(square, box=(imX + 256, imY + 256))
+
             else:
                 raise ValueError(region)
+
         if plane == 0:
             data = np.asarray(im.convert("RGB")).copy()
             data[(data == (255, 0, 255)).all(axis=-1)] = (0, 0, 0)
             im = Image.fromarray(data, mode="RGB")
             if planes > 1:
                 plane0Map = im.convert("LA").filter(ImageFilter.GaussianBlur(radius=5))
+
         elif plane > 0:
             data = np.asarray(im.convert("RGBA")).copy()
             data[:, :, 3] = 255 * (data[:, :, :3] != (255, 0, 255)).all(axis=-1)
@@ -432,18 +466,11 @@ for defn in defs:
                         )
                     )
                     if not allBlack(cropped):
-                        outfilename = "%s/tiles/rendered/%s/%s/%s_%s_%s.png" % (
-                            version,
-                            mapId,
-                            zoom,
-                            plane,
-                            x,
-                            y,
-                        )
+                        outfilename = f"{version}/tiles/rendered/{mapId}/{zoom}/{plane}_{x}_{y}.png"
                         mkdir_p(outfilename)
                         cropped.save(outfilename)
             # outfilename = "%s/tiles/rendered/%s/%s_%s_full.png" % (version, mapId, plane, zoom)
             # mkdir_p(outfilename)
             # zoomed.save(outfilename)
-with open("%s/basemaps.json" % version, "w") as f:
+with open(f"{version}/basemaps.json", "w") as f:
     json.dump(baseMaps, f)
