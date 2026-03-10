@@ -1339,7 +1339,11 @@ public class MapImageDumper
 						continue;
 					}
 
-					if (pos.getZ() == tileZ && (region.getTileSetting(z, localX, localY) & 24) == 0)
+					if (pos.getZ() == 0 && z == 0)
+					{
+						planeLocs.add(loc);
+					}
+					else if (pos.getZ() == tileZ && (region.getTileSetting(z, localX, localY) & 24) == 0)
 					{
 						planeLocs.add(loc);
 					}
