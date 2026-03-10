@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache;
+package wiki.runescape.oldschool.maps;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -40,6 +40,15 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.cache.AreaManager;
+import net.runelite.cache.ConfigType;
+import net.runelite.cache.FontManager;
+import net.runelite.cache.FontName;
+import net.runelite.cache.IndexType;
+import net.runelite.cache.ObjectManager;
+import net.runelite.cache.SpriteManager;
+import net.runelite.cache.TextureManager;
+import net.runelite.cache.WorldMapManager;
 import net.runelite.cache.definitions.AreaDefinition;
 import net.runelite.cache.definitions.FontDefinition;
 import net.runelite.cache.definitions.ObjectDefinition;
@@ -76,7 +85,7 @@ import org.apache.commons.cli.ParseException;
 @Accessors(chain = true)
 public class MapImageDumper
 {
-	private static final int MAP_SCALE = 4; // this squared is the number of pixels per map square
+	private static final int MAP_SCALE = 3; // this squared is the number of pixels per map square
 	private static final int BLEND = 5; // number of surrounding tiles for ground blending
 
 	private static byte[][][] TILE_SHAPE_2D;
@@ -1348,6 +1357,20 @@ public class MapImageDumper
 						for (Location location : locs)
 						{
 							int type = location.getType();
+							if (type == -1)
+							{
+								int drawX = (drawBaseX + localX) * MAP_SCALE;
+								int drawY = (drawBaseY + (Region.Y - 1 - localY)) * MAP_SCALE;
+								int rgb = 0xFF000000;
+
+								for (int xx = 0; xx < MAP_SCALE; xx++)
+								{
+									for (int yy = 0; yy < MAP_SCALE; yy++)
+									{
+										image.setRGB(drawX + xx, drawY + yy, rgb);
+									}
+								}
+							}
 							if (type >= 0 && type <= 3)
 							{
 								int rotation = location.getOrientation();
@@ -1364,7 +1387,7 @@ public class MapImageDumper
 								}
 								rgb |= 0xFF000000;
 
-								if (object.getMapSceneID() != -1)
+								if (object.getMapSceneID() != -1 && object.getWallOrDoor() == 0)
 								{
 									blitMapDecoration(image, drawX, drawY, object);
 								}
@@ -1499,15 +1522,31 @@ public class MapImageDumper
 					for (Location location : locs)
 					{
 						int type = location.getType();
-						if (type == 22 || (type >= 9 && type <= 11))
+						if (type == 22 || type == 10 || type == 11)
 						{
 							ObjectDefinition object = findObject(location.getId());
 
-							int drawX = (drawBaseX + localX) * MAP_SCALE;
-							//What is offsetY?
-							int objSizeOffset = Math.max(2, object.getOffsetY());
-							int drawY = (drawBaseY + (Region.Y - objSizeOffset - localY)) * MAP_SCALE;
+							int sizeOffsetX = 0;
+							int sizeOffsetY = 0;
+							if (Math.max(object.getSizeX(), object.getSizeY()) > 1)
+							{
+								switch (location.getOrientation())
+								{
+									case 0:
+									case 2:
+										sizeOffsetX = MAP_SCALE * object.getSizeX() / 2 - MAP_SCALE;
+										sizeOffsetY = MAP_SCALE * object.getSizeY() / 2;
+										break;
+									case 1:
+									case 3:
+										sizeOffsetX = MAP_SCALE * object.getSizeY() / 2 - MAP_SCALE;
+										sizeOffsetY = MAP_SCALE * object.getSizeX() / 2;
+										break;
+								}
+							}
 
+							int drawX = (drawBaseX + localX) * MAP_SCALE + sizeOffsetX;
+							int drawY = (drawBaseY + Region.Y - localY - 1) * MAP_SCALE - sizeOffsetY;
 							if (object.getMapSceneID() != -1)
 							{
 								blitMapDecoration(image, drawX, drawY, object);
@@ -1713,7 +1752,6 @@ public class MapImageDumper
 
 			if (z != location.getPosition().getZ())
 			{
-				// draw all icons on z=0
 				continue;
 			}
 
@@ -1748,13 +1786,21 @@ public class MapImageDumper
 			int regionX = worldPosition.getX() / Region.X;
 			int regionY = worldPosition.getY() / Region.Y;
 
-			if (area == null || area.getName() != null || worldPosition.getZ() != z || regionX != region.getRegionX() || regionY != region.getRegionY())
+			if (area == null || area.getName() != null || regionX != region.getRegionX() || regionY != region.getRegionY())
 			{
 				continue;
 			}
 
 			int localX = worldPosition.getX() - region.getBaseX();
 			int localY = worldPosition.getY() - region.getBaseY();
+
+			boolean isBridge = (region.getTileSetting(1, localX, Region.Y - localY - 1) & 2) != 0;
+			boolean pushDown = z == 0 && isBridge;
+			if (!pushDown && z != worldPosition.getZ())
+			{
+				continue;
+			}
+
 			int drawX = drawBaseX + localX;
 			int drawY = drawBaseY + (Region.Y - 1 - localY);
 			SpriteDefinition sprite = sprites.findSprite(area.spriteId, 0);
@@ -1837,7 +1883,7 @@ public class MapImageDumper
 	{
 		SpriteDefinition sprite = mapDecorations[object.getMapSceneID()];
 		float scale = MAP_SCALE / (float) 4;
-		blitIcon(dst, x, y + MAP_SCALE, sprite, scale);
+		blitIcon(dst, x, y, sprite, scale);
 	}
 
 	private void blitIcon(BufferedImage dst, int x, int y, SpriteDefinition sprite, float scale)
@@ -1850,23 +1896,23 @@ public class MapImageDumper
 		float stepSizeHeight = 1 + 1 - scale;
 		float stepSizeWidth = 1 + 1 - scale;
 
-		int ymin = Math.max(0, -y);
-		int ymax = Math.min(displayHeight, dst.getHeight() - y);
-
-		int xmin = Math.max(0, -x);
-		int xmax = Math.min(displayWidth, dst.getWidth() - x);
-
 		float indexX = 0;
 		float indexY = 0;
-		for (int yo = ymin; yo < ymax; yo++)
+		for (int yo = 0; yo < displayHeight; yo++)
 		{
-			for (int xo = xmin; xo < xmax; xo++)
+			for (int xo = 0; xo < displayWidth; xo++)
 			{
 				int index = (int) (indexX) + ((int) (indexY) * (sprite.getWidth()));
 				byte color = sprite.pixelIdx[index];
 				if (color != 0)
 				{
-					dst.setRGB(x + xo, y + yo, sprite.palette[color & 255] | 0xFF000000);
+					try
+					{
+						dst.setRGB(x + xo, y + yo, sprite.palette[color & 255] | 0xFF000000);
+					} catch (ArrayIndexOutOfBoundsException e) {
+						// attempted to draw part of an icon that is off the canvas
+						continue;
+					}
 				}
 				indexX += stepSizeWidth;
 			}
