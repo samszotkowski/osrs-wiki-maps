@@ -1,13 +1,11 @@
 package wiki.runescape.oldschool.maps;
 
-import com.google.gson.Gson;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Scanner;
 import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.cache.MapImageDumper;
 import net.runelite.cache.ObjectManager;
 import net.runelite.cache.fs.Store;
 import net.runelite.cache.util.XteaKeyManager;
@@ -27,7 +25,6 @@ public class MapExportTest
 		String outputDir = String.format("%s/output", intermediateDir);
 		String cacheDir = String.format("./data/versions/%s", version);
 
-		Gson gson = new Gson();
 		String cache = String.format("%s/cache", cacheDir);
 		Store store = new Store(new File(cache));
 		store.load();
@@ -55,7 +52,7 @@ public class MapExportTest
 		for (int plane = 0; plane < 4; plane++)
 		{
 			BufferedImage im = dumper.drawMap(plane);
-			String filename = String.format("test_%s.png", plane);
+			String filename = String.format("plane_%s.png", plane);
 			File outputfile = fileWithDirectoryAssurance(outputDir, filename);
 			ImageIO.write(im, "png", outputfile);
 		}
