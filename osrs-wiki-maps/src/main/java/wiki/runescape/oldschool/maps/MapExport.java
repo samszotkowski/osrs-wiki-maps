@@ -13,7 +13,6 @@ import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.AreaManager;
 import net.runelite.cache.IndexType;
-import net.runelite.cache.MapImageDumper;
 import net.runelite.cache.ObjectManager;
 import net.runelite.cache.SpriteManager;
 import net.runelite.cache.WorldMapManager;
