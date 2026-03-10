@@ -27,7 +27,7 @@ def debug_defn(tile_path):
     y_high = max(y_coords)
 
     defn = {
-        "name": "debug",
+        "name": "Full Map",
         "regionList": [
             {
                 "numberOfPlanes": 4,
@@ -161,7 +161,7 @@ def point_inside_box(
     low_y = low_y * 64 + chunk_low_y * 8
     high_x = high_x * 64 + chunk_high_x * 8 + 7
     high_y = high_y * 64 + chunk_high_y * 8 + 7
-    return ((plane == 0) or (plane == z)) and x >= low_x and x <= high_x and y >= low_y and y <= high_y
+    return plane == z and low_x <= x <= high_x and low_y <= y <= high_y
 
 
 def get_icons_inside_area(
