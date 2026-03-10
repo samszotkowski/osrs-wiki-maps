@@ -85,7 +85,7 @@ import org.apache.commons.cli.ParseException;
 @Accessors(chain = true)
 public class MapImageDumper
 {
-	private static final int MAP_SCALE = 3; // this squared is the number of pixels per map square
+	private static final int MAP_SCALE = 4; // this squared is the number of pixels per map square
 	private static final int BLEND = 5; // number of surrounding tiles for ground blending
 
 	private static byte[][][] TILE_SHAPE_2D;
