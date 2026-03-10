@@ -3,18 +3,16 @@ package wiki.runescape.oldschool.maps;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.io.InputStream;
 import net.runelite.cache.region.Location;
 import net.runelite.cache.region.Position;
 
-@Slf4j
 public class WorldmapLocations
 {
 	private static final int HAS_OVERLAY = 2;
 	private static final int HAS_LOCATION = 4;
 
-	public static List<Location> load(InputStream b)
+	public static List<Location> loadMapSquare(InputStream b)
 	{
 		ArrayList<Location> locs = new ArrayList<>();
 		for (int localX = 0; localX < 64; ++localX)
@@ -22,6 +20,19 @@ public class WorldmapLocations
 			for (int localY = 0; localY < 64; ++localY)
 			{
 				locs.addAll(unpackColumn(localX, localY, b));
+			}
+		}
+		return locs;
+	}
+
+	public static List<Location> loadZone(InputStream b, int zoneX, int zoneY)
+	{
+		ArrayList<Location> locs = new ArrayList<>();
+		for (int localX = 0; localX < 8; ++localX)
+		{
+			for (int localY = 0; localY < 8; ++localY)
+			{
+				locs.addAll(unpackColumn(localX + zoneX * 8, localY + zoneY * 8, b));
 			}
 		}
 		return locs;
