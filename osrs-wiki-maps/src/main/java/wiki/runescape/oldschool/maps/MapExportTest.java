@@ -10,6 +10,9 @@ import net.runelite.cache.ObjectManager;
 import net.runelite.cache.fs.Store;
 import net.runelite.cache.util.XteaKeyManager;
 
+/**
+ * Quickly render full plane map images w/ labels and icons
+ */
 @Slf4j
 public class MapExportTest
 {

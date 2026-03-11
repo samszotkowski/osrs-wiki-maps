@@ -7,6 +7,9 @@ import net.runelite.cache.io.InputStream;
 import net.runelite.cache.region.Location;
 import net.runelite.cache.region.Position;
 
+/**
+ * Unpack locs from worldmap index
+ */
 public class WorldmapLocations
 {
 	private static final int HAS_OVERLAY = 2;
@@ -74,7 +77,7 @@ public class WorldmapLocations
 		boolean hasLocation = (settings & HAS_LOCATION) != 0;
 
 		//Edges between water and land
-		// unerlays[0][x][y] = buffer.readUnsignedShort();
+		// underlays[0][x][y] = buffer.readUnsignedShort();
 		buffer.readUnsignedShort();
 		if (hasOverlay)
 		{

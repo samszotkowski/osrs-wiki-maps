@@ -47,6 +47,7 @@ public class MapExport
 		File versionTxt = new File(versionPath);
 		Scanner sc = new Scanner(versionTxt);
 		String version = sc.next();
+		sc.close();
 		log.info("Version: " + version);
 
 		String intermediateDir = String.format("./out/mapgen/versions/%s", version);

@@ -53,6 +53,12 @@ public class RegionLoader extends net.runelite.cache.region.RegionLoader
 		this.objectManager = objectManager;
 	}
 
+	/**
+	 * For each region, look for locs first in worldmap index,
+	 * recording zone id and plane for each loc that was found.
+	 * Then look for locs in minimap index, keeping any such that
+	 * none were found in worldmap at that zone + plane.
+	*/
 	@Override
 	public void loadRegions() throws IOException
 	{
@@ -101,6 +107,7 @@ public class RegionLoader extends net.runelite.cache.region.RegionLoader
 				int minLevel = mapSquareDef.getMinLevel();
 
 				LocationsDefinition locDef = loadLocationDefinitionWorldmap(regionId, buffer, mapType);
+				buffer.close();
 				for (Location loc : locDef.getLocations())
 				{
 					int x = loc.getPosition().getX();
@@ -149,6 +156,7 @@ public class RegionLoader extends net.runelite.cache.region.RegionLoader
 				int minLevel = zoneDef.getMinLevel();
 
 				LocationsDefinition locDef = loadLocationDefinitionWorldmap(regionId, buffer, mapType);
+				buffer.close();
 				for (Location loc : locDef.getLocations())
 				{
 					int x = loc.getPosition().getX() + offsetX;
@@ -158,6 +166,8 @@ public class RegionLoader extends net.runelite.cache.region.RegionLoader
 						loc.getId(), loc.getType(), loc.getOrientation(), new Position(x, y, z)
 					));
 
+					// We want to draw map icons in actual location *and* on minLevel
+					// because in-game world map draws all icons on minLevel
 					ObjectDefinition objDef = objectManager.getObject(loc.getId());
 					boolean isMapIcon = objDef.getMapAreaId() != -1;
 					if (isMapIcon && z != minLevel)
