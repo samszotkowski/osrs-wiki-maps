@@ -1913,7 +1913,9 @@ public class MapImageDumper
 					try
 					{
 						dst.setRGB(x + xo, y + yo, sprite.palette[color & 255] | 0xFF000000);
-					} catch (ArrayIndexOutOfBoundsException e) {
+					}
+					catch (ArrayIndexOutOfBoundsException e)
+					{
 						// attempted to draw part of an icon that is off the canvas
 						continue;
 					}

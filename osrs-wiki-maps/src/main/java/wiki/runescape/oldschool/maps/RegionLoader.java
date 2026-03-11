@@ -279,7 +279,8 @@ public class RegionLoader extends net.runelite.cache.region.RegionLoader
 		ArchiveFiles files = archive.getFiles(storage.loadArchive(archive));
 		for (FSFile file : files.getFiles())
 		{
-			if (file.getFileId() == fileId) {
+			if (file.getFileId() == fileId)
+			{
 				return file;
 			}
 		}
