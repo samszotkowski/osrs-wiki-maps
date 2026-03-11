@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
@@ -29,6 +30,7 @@ import net.runelite.cache.fs.Index;
 import net.runelite.cache.fs.Storage;
 import net.runelite.cache.fs.Store;
 import net.runelite.cache.region.Location;
+import net.runelite.cache.region.Position;
 import net.runelite.cache.region.Region;
 import net.runelite.cache.util.XteaKeyManager;
 
@@ -152,6 +154,21 @@ public class MapExport
 		worldMapManager.load();
 		List<WorldMapElementDefinition> elements = worldMapManager.getElements();
 
+		HashMap<Integer, List<WorldMapElementDefinition>> elementsByRegion = new HashMap<>();
+		for (WorldMapElementDefinition element : elements)
+		{
+			AreaDefinition area = areaManager.getArea(element.getAreaDefinitionId());
+			if (area.spriteId != -1)
+			{
+				int x = element.getWorldPosition().getX();
+				int y = element.getWorldPosition().getY();
+				int mapsquareX = x / Region.X;
+				int mapsquareY = y / Region.Y;
+				int regionId = (mapsquareX << 8) + mapsquareY;
+				elementsByRegion.computeIfAbsent(regionId, k -> new ArrayList<>()).add(element);
+			}
+		}
+
 		for (Region region : regionLoader.getRegions())
 		{
 			for (Location location : region.getLocations())
@@ -165,17 +182,34 @@ public class MapExport
 					spriteIds.add(area.spriteId);
 				}
 			}
-		}
 
-		for (WorldMapElementDefinition element : elements)
-		{
-			AreaDefinition area = areaManager.getArea(element.getAreaDefinitionId());
-			if (area.spriteId == -1)
-			{  // maybe these are the yellow squares/lines, no sprite?
-				continue;
+			List<WorldMapElementDefinition> wmElements = elementsByRegion.get(region.getRegionID());
+			if (wmElements != null)
+			{
+				for (WorldMapElementDefinition wmElement : wmElements)
+				{
+					AreaDefinition area = areaManager.getArea(wmElement.getAreaDefinitionId());
+					if (area.spriteId != -1)
+					{
+						icons.add(new MinimapIcon(wmElement.getWorldPosition(), area.spriteId));
+						spriteIds.add(area.spriteId);
+
+						int worldX = wmElement.getWorldPosition().getX();
+						int worldY = wmElement.getWorldPosition().getY();
+						int localX = worldX - Region.X * (worldX / Region.X);
+						int localY = worldY - Region.Y * (worldY / Region.Y);
+						int z = wmElement.getOffset().getZ();
+						boolean isBridge = (region.getTileSetting(1, localX, Region.Y - localY - 1) & 2) != 0;
+						if (z == 1 && isBridge)
+						{
+							icons.add(new MinimapIcon(
+								new Position(wmElement.getWorldPosition().getX(), wmElement.getWorldPosition().getY(), 0),
+								area.spriteId
+							));
+						}
+					}
+				}
 			}
-			icons.add(new MinimapIcon(element.getWorldPosition(), area.spriteId));
-			spriteIds.add(area.spriteId);
 		}
 
 		for (int spriteId : spriteIds)
