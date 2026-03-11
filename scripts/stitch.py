@@ -379,7 +379,7 @@ def render_type_3(plane, region, icons, plane_image, base_tiles_dir, map_low_x, 
     return plane_image, area_icons
 
 
-def render_map(map_id, defn, icons, icon_sprites, base_tiles_dir, out_tiles_dir):
+def render_map(map_id, defn, icons, icon_sprites, base_tiles_dir, out_tiles_dir, zoom_min, zoom_max):
     """
     render and save images for this map id to "out/mapgen/versions/#/output/tiles/rendered"
     """
@@ -414,7 +414,7 @@ def render_map(map_id, defn, icons, icon_sprites, base_tiles_dir, out_tiles_dir)
             plane_image = plane_0_map.copy() # type: ignore
             plane_image.paste(mask, (0, 0), mask)
 
-        for zoom in range(-3, 4):
+        for zoom in range(zoom_min, zoom_max+1):
             scaling_factor = 2.0**zoom / 2.0**2
             zoomed_width = int(round(scaling_factor * plane_image.width))
             zoomed_height = int(round(scaling_factor * plane_image.height))
@@ -456,7 +456,7 @@ def render_map(map_id, defn, icons, icon_sprites, base_tiles_dir, out_tiles_dir)
                         cropped.save(out_path)
 
 
-def main(select_maps=()):
+def main(select_maps=(), zoom_min=-3, zoom_max=3):
     version_txt = "./data/versions/version.txt"
     with open(version_txt, "rt") as  file:
         version = file.read()
@@ -482,7 +482,7 @@ def main(select_maps=()):
             continue
         basemap = load_basemap(defn)
         basemaps.append(basemap)
-        render_map(map_id, defn, icons, icon_sprites, base_tiles_dir, out_tiles_dir)
+        render_map(map_id, defn, icons, icon_sprites, base_tiles_dir, out_tiles_dir, zoom_min, zoom_max)
 
     with open(basemaps_path, "w") as f:
         json.dump(basemaps, f)
