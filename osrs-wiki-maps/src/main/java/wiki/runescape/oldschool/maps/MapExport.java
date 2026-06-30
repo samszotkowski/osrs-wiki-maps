@@ -106,7 +106,7 @@ public class MapExport {
         WorldMapLoader loader = new WorldMapLoader();
         Index index = store.getIndex(IndexType.WORLDMAP);
 
-        Archive archive = index.findArchiveByName("details");
+        Archive archive = index.isNamed() ? index.findArchiveByName("details") : index.getArchive(WorldMapManager.DETAILS_ID);
 
         Storage storage = store.getStorage();
         byte[] archiveData = storage.loadArchive(archive);
