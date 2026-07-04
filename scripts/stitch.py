@@ -27,7 +27,7 @@ def debug_defn(tile_path):
     y_high = max(y_coords)
 
     defn = {
-        "name": "debug",
+        "name": "Full Map",
         "regionList": [
             {
                 "numberOfPlanes": 4,
